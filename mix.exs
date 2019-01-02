@@ -1,28 +1,85 @@
 defmodule Terminator.MixProject do
   use Mix.Project
 
+  @version "0.1.3"
   def project do
     [
       app: :terminator,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.7",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      elixirc_paths: elixirc_paths(Mix.env()),
+      description: description(),
+      aliases: aliases(),
+      test_coverage: [tool: ExCoveralls],
+      package: package(),
+      docs: docs(),
+      dialyzer: dialyzer()
     ]
   end
+
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {Terminator.Application, []}
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
+      {:ecto, "~> 3.0"},
+      {:ecto_sql, "~> 3.0"},
+      {:postgrex, "~> 0.14.1"},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:ex_machina, "~> 2.2", only: :test},
+      {:excoveralls, "~> 0.10", only: :test},
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp description() do
+    "Elixir library for managing user abilities with support of ecto and compatiblity with absinthe"
+  end
+
+  defp package() do
+    [
+      files: ~w(lib .formatter.exs mix.exs README*),
+      licenses: ["GPL"],
+      links: %{"GitHub" => "https://github.com/MilosMosovsky/terminator"}
+    ]
+  end
+
+  defp docs() do
+    [
+      extras: ["README.md"],
+      main: "readme",
+      source_url: "https://github.com/MilosMosovsky/terminator"
+    ]
+  end
+
+  defp dialyzer() do
+    [
+      plt_add_deps: :transitive,
+      plt_add_apps: [:ex_unit],
+      flags: [
+        :error_handling,
+        :race_conditions,
+        :underspecs,
+        :unmatched_returns
+      ]
+    ]
+  end
+
+  defp aliases do
+    [
+      test: ["ecto.create", "ecto.migrate", "test"]
     ]
   end
 end

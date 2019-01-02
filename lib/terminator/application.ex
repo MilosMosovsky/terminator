@@ -6,12 +6,19 @@ defmodule Terminator.Application do
     import Supervisor.Spec
 
     children = [
-
+      worker(Terminator.Registry, [])
     ]
 
-    IO.inspect("SPAWN TERMINATOR!")
+    children = children ++ ensure_local_test_repo()
 
     opts = [strategy: :one_for_one, name: Terminator.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp ensure_local_test_repo do
+    case Mix.env() == :test do
+      true -> Application.get_env(:terminator, :ecto_repos)
+      _ -> []
+    end
   end
 end
