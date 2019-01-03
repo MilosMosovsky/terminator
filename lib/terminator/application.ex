@@ -16,7 +16,7 @@ defmodule Terminator.Application do
   end
 
   defp ensure_local_test_repo do
-    case Mix.env() == :test do
+    case Mix.env() in [:test, :dev] do
       true -> Application.get_env(:terminator, :ecto_repos)
       _ -> []
     end

@@ -11,3 +11,6 @@ config :terminator, Terminator.Repo,
   database: "api_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
+
+config :logger,
+  level: :info

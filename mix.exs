@@ -1,7 +1,7 @@
 defmodule Terminator.MixProject do
   use Mix.Project
 
-  @version "0.1.3"
+  @version "0.1.5"
   def project do
     [
       app: :terminator,
@@ -38,6 +38,7 @@ defmodule Terminator.MixProject do
       {:ecto_sql, "~> 3.0"},
       {:postgrex, "~> 0.14.1"},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:optimus, "~> 0.1.0", only: :dev},
       {:ex_machina, "~> 2.2", only: :test},
       {:excoveralls, "~> 0.10", only: :test},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false}
@@ -60,7 +61,13 @@ defmodule Terminator.MixProject do
     [
       extras: ["README.md"],
       main: "readme",
-      source_url: "https://github.com/MilosMosovsky/terminator"
+      source_url: "https://github.com/MilosMosovsky/terminator",
+      groups_for_modules: [
+        Models: [
+          Terminator.Performer,
+          Terminator.Role
+        ]
+      ]
     ]
   end
 

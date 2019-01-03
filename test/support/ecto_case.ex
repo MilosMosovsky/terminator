@@ -3,11 +3,12 @@ defmodule Terminator.EctoCase do
 
   using do
     quote do
-      alias MyApp.Repo
+      alias Terminator.Repo
 
       import Ecto
       import Ecto.Query
       import Terminator.EctoCase
+      import Terminator.Factory
 
       # and any other stuff
     end
