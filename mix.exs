@@ -1,7 +1,7 @@
 defmodule Terminator.MixProject do
   use Mix.Project
 
-  @version "0.3.0"
+  @version "0.4.0"
   def project do
     [
       app: :terminator,
@@ -78,7 +78,7 @@ defmodule Terminator.MixProject do
   defp dialyzer() do
     [
       plt_add_deps: :transitive,
-      plt_add_apps: [:ex_unit],
+      plt_add_apps: [:ex_unit, :mix],
       flags: [
         :error_handling,
         :race_conditions,

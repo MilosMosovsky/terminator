@@ -262,4 +262,43 @@ defmodule Terminator.TerminatorTest do
       assert {:ok, "Authorized"} == Post.calculated(performer, true)
     end
   end
+
+  describe "Terminator.has_ability?/2" do
+    test "grants ability passed as an argument" do
+      performer = insert(:performer)
+      ability = insert(:ability, identifier: "update_post")
+
+      performer = Terminator.Performer.grant(performer, ability)
+
+      assert Terminator.has_ability?(performer, :update_post)
+
+      refute Terminator.has_ability?(performer, :delete_post)
+    end
+  end
+
+  describe "Terminator.has_role?/2" do
+    test "grants ability passed as an argument" do
+      performer = insert(:performer)
+      role = insert(:role, identifier: "admin", name: "Administrator")
+
+      performer = Terminator.Performer.grant(performer, role)
+
+      assert Terminator.has_role?(performer, :admin)
+
+      refute Terminator.has_role?(performer, :delete_post)
+    end
+  end
+
+  describe "Terminator.perform_authorization!/3" do
+    test "performs authorization" do
+      performer = insert(:performer)
+      role = insert(:role, identifier: "admin", name: "Administrator")
+
+      performer = Terminator.Performer.grant(performer, role)
+
+      assert Terminator.perform_authorization!(performer)
+      assert Terminator.perform_authorization!(performer, [])
+      assert Terminator.perform_authorization!(performer, [], [])
+    end
+  end
 end

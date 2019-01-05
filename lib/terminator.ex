@@ -136,6 +136,31 @@ defmodule Terminator do
         end
       end
 
+    For more complex calculation you need to pass bindings to the function
+
+        defmodule HelloTest do
+        use Terminator
+
+        def test_authorization do
+          post = %Post{owner_id: 1}
+
+          permissions do
+            calculated(:is_owner, [post])
+            calculated(fn performer, [post] ->
+              post.owner_id == performer.id
+            end)
+          end
+
+          as_authorized do
+            IO.inspect("This code is executed only for authorized performer")
+          end
+        end
+
+        def is_owner(performer, [post]) do
+          post.owner_id == performer.id
+        end
+      end
+
   """
   defmacro calculated(func_name) when is_atom(func_name) do
     quote do
@@ -153,6 +178,32 @@ defmodule Terminator do
       {:ok, current_performer} = Terminator.Registry.lookup(:current_performer)
 
       result = apply(unquote(callback), [current_performer])
+
+      Terminator.Registry.add(
+        :calculated_permissions,
+        result
+      )
+    end
+  end
+
+  defmacro calculated(func_name, bindings) when is_atom(func_name) do
+    quote do
+      {:ok, current_performer} = Terminator.Registry.lookup(:current_performer)
+
+      result = unquote(func_name)(current_performer, unquote(bindings))
+
+      Terminator.Registry.add(
+        :calculated_permissions,
+        result
+      )
+    end
+  end
+
+  defmacro calculated(callback, bindings) do
+    quote do
+      {:ok, current_performer} = Terminator.Registry.lookup(:current_performer)
+
+      result = apply(unquote(callback), [current_performer, unquote(bindings)])
 
       Terminator.Registry.add(
         :calculated_permissions,
@@ -181,12 +232,57 @@ defmodule Terminator do
     perform_authorization!()
   end
 
+  @doc """
+  Perform authorization on passed performer and abilities
+  """
+  @spec has_ability?(Terminator.Performer.t(), atom()) :: boolean()
+  def has_ability?(%Terminator.Performer{} = performer, ability_name) do
+    perform_authorization!(performer, [Atom.to_string(ability_name)], []) == :ok
+  end
+
+  @doc """
+  Perform role check on passed performer and role
+  """
+  def has_role?(%Terminator.Performer{} = performer, role_name) do
+    perform_authorization!(performer, nil, [Atom.to_string(role_name)]) == :ok
+  end
+
   @doc false
-  @spec perform_authorization!() :: :ok | {:error, String.t()}
-  def perform_authorization! do
-    {:ok, current_performer} = Terminator.Registry.lookup(:current_performer)
-    {:ok, required_abilities} = Terminator.Registry.lookup(:required_abilities)
-    {:ok, required_roles} = Terminator.Registry.lookup(:required_roles)
+  def perform_authorization!(
+        current_performer \\ nil,
+        required_abilities \\ nil,
+        required_roles \\ []
+      ) do
+    current_performer =
+      case current_performer do
+        nil ->
+          {:ok, current_performer} = Terminator.Registry.lookup(:current_performer)
+          current_performer
+
+        _ ->
+          current_performer
+      end
+
+    required_abilities =
+      case required_abilities do
+        nil ->
+          {:ok, required_abilities} = Terminator.Registry.lookup(:required_abilities)
+          required_abilities
+
+        _ ->
+          required_abilities
+      end
+
+    required_roles =
+      case required_roles do
+        [] ->
+          {:ok, required_roles} = Terminator.Registry.lookup(:required_roles)
+          required_roles
+
+        _ ->
+          required_roles
+      end
+
     {:ok, calculated_permissions} = Terminator.Registry.lookup(:calculated_permissions)
 
     # If no performer is given we can assume that permissions are not granted
@@ -344,7 +440,7 @@ defmodule Terminator do
         end
       end
   """
-  @spec has_ability(atom()) :: {:ok, any()}
+  @spec has_ability(atom()) :: {:ok, atom()}
   def has_ability(ability) do
     Terminator.Registry.add(:required_abilities, Atom.to_string(ability))
     {:ok, ability}
@@ -365,7 +461,7 @@ defmodule Terminator do
         end
       end
   """
-  @spec has_role(atom()) :: {:ok, any()}
+  @spec has_role(atom()) :: {:ok, atom()}
   def has_role(role) do
     Terminator.Registry.add(:required_roles, Atom.to_string(role))
     {:ok, role}

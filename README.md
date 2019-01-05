@@ -43,7 +43,7 @@ defmodule Sample.Post
 ```elixir
 def deps do
   [
-    {:terminator, "~> 0.3"}
+    {:terminator, "~> 0.4"}
   ]
 end
 ```
@@ -173,6 +173,88 @@ defmodule Sample.Post do
 
   def confirmed_email(performer) do
     performer.email_confirmed?
+  end
+end
+```
+
+### Composing calculations
+
+When we need to performer calculation based on external data we can invoke bindings to `calculated/2`
+
+```elixir
+defmodule Sample.Post do
+  def create() do
+    user = Sample.Repo.get(Sample.User, 1)
+    post = %Post{owner_id: 1}
+    load_and_authorize_performer(user)
+
+    permissions do
+      calculated(:confirmed_email)
+      calculated(:is_owner, [post])
+    end
+  end
+
+  def confirmed_email(performer) do
+    performer.email_confirmed?
+  end
+
+  def is_owner(performer, [post]) do
+    performer.id == post.owner_id
+  end
+end
+```
+
+To perform exclusive abilities such as `when User is owner of post AND is in editor role` we can do so as in following example
+
+```elixir
+defmodule Sample.Post do
+  def create() do
+    user = Sample.Repo.get(Sample.User, 1)
+    post = %Post{owner_id: 1}
+    load_and_authorize_performer(user)
+
+    permissions do
+      has_role(:editor)
+    end
+
+    as_authorized do
+      case is_owner(performer, post) do
+        :ok -> ...
+        {:error, message} -> ...
+      end
+    end
+  end
+
+  def is_owner(performer, post) do
+    load_and_authorize_performer(performer)
+
+    permissions do
+      calculated(fn p, [post] ->
+        p.id == post.owner_id
+      end)
+    end
+
+    is_authorized?
+  end
+end
+```
+
+We can simplify example in this case by excluding DSL for permissions
+
+```elixir
+defmodule Sample.Post do
+  def create() do
+    user = Sample.Repo.get(Sample.User, 1)
+    post = %Post{owner_id: 1}
+
+    # We can also use has_ability?/2
+    if has_role?(user, :admin) and is_owner(user, post) do
+      ...
+    end
+  end
+
+  def is_owner(performer, post) do
+    performer.id == post.owner_id
   end
 end
 ```
