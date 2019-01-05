@@ -49,6 +49,38 @@ defmodule Post do
       _ -> raise ArgumentError, message: "Not authorized"
     end
   end
+
+  def calculated(performer, email_confirmed) do
+    load_and_authorize_performer(performer)
+
+    permissions do
+      calculated(fn _performer ->
+        email_confirmed
+      end)
+    end
+
+    case is_authorized?() do
+      :ok -> {:ok, "Authorized"}
+      _ -> raise ArgumentError, message: "Not authorized"
+    end
+  end
+
+  def calculated_macro(performer) do
+    load_and_authorize_performer(performer)
+
+    permissions do
+      calculated(:confirmed_email)
+    end
+
+    case is_authorized?() do
+      :ok -> {:ok, "Authorized"}
+      _ -> raise ArgumentError, message: "Not authorized"
+    end
+  end
+
+  def confirmed_email(_performer) do
+    false
+  end
 end
 
 defmodule Terminator.TerminatorTest do
@@ -59,6 +91,9 @@ defmodule Terminator.TerminatorTest do
       functions = Post.__info__(:functions)
 
       assert [
+               calculated: 2,
+               calculated_macro: 1,
+               confirmed_email: 1,
                delete: 1,
                load_and_authorize_performer: 1,
                no_macro: 1,
@@ -205,6 +240,26 @@ defmodule Terminator.TerminatorTest do
       user = %{performer: performer}
 
       assert {:ok, "Authorized"} == Post.update(user)
+    end
+  end
+
+  describe "Terminator.calculated/1" do
+    test "grants calculated permissions" do
+      performer = insert(:performer)
+      assert {:ok, "Authorized"} == Post.calculated(performer, true)
+    end
+
+    test "rejects calculated permissions" do
+      performer = insert(:performer)
+
+      assert_raise ArgumentError, fn ->
+        Post.calculated(performer, false)
+      end
+    end
+
+    test "rejects macro calculated permissions" do
+      performer = insert(:performer)
+      assert {:ok, "Authorized"} == Post.calculated(performer, true)
     end
   end
 end

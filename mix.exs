@@ -1,7 +1,7 @@
 defmodule Terminator.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.3.0"
   def project do
     [
       app: :terminator,
@@ -90,7 +90,7 @@ defmodule Terminator.MixProject do
 
   defp aliases do
     [
-      test: ["ecto.drop", "ecto.create", "ecto.migrate", "test"]
+      test: ["ecto.create", "ecto.migrate", "test"]
     ]
   end
 end

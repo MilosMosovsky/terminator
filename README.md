@@ -18,6 +18,9 @@ defmodule Sample.Post
       has_role(:admin) # or
       has_role(:editor) # or
       has_ability(:delete_posts) # or
+      calculated(fn performer ->
+        performer.email_confirmed?
+      end)
     end
 
     as_authorized do
@@ -40,7 +43,7 @@ defmodule Sample.Post
 ```elixir
 def deps do
   [
-    {:terminator, "~> 0.2"}
+    {:terminator, "~> 0.3"}
   ]
 end
 ```
@@ -135,6 +138,44 @@ defmodule Sample.Post
 ```
 
 Terminator tries to infer the performer, so it is easy to pass any struct (could be for example `User` in your application) which has set up `belongs_to` association for performer. If the performer was already preloaded from database Terminator will take it as loaded performer. If you didn't do preload and just loaded `User` -> `Repo.get(User, 1)` Terminator will fetch the performer on each authorization try.
+
+### Calculated permissions
+
+Often you will come to case when `static` permissions are not enough. For example allow only users who confirmed their email address.
+
+```elixir
+defmodule Sample.Post do
+  def create() do
+    user = Sample.Repo.get(Sample.User, 1)
+    load_and_authorize_performer(user)
+
+    permissions do
+      calculated(fn performer -> do
+        performer.email_confirmed?
+      end)
+    end
+  end
+end
+```
+
+We can also use DSL form of `calculated` keyword
+
+```elixir
+defmodule Sample.Post do
+  def create() do
+    user = Sample.Repo.get(Sample.User, 1)
+    load_and_authorize_performer(user)
+
+    permissions do
+      calculated(:confirmed_email)
+    end
+  end
+
+  def confirmed_email(performer) do
+    performer.email_confirmed?
+  end
+end
+```
 
 ### Granting abilities
 

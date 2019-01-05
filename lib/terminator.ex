@@ -66,6 +66,7 @@ defmodule Terminator do
     quote do
       Terminator.Registry.insert(:required_abilities, [])
       Terminator.Registry.insert(:required_roles, [])
+      Terminator.Registry.insert(:calculated_permissions, [])
       unquote(block)
     end
   end
@@ -91,6 +92,72 @@ defmodule Terminator do
       with :ok <- perform_authorization!() do
         unquote(block)
       end
+    end
+  end
+
+  @doc """
+  Defines calculated permission to be evaluated in runtime
+
+  ## Examples
+
+      defmodule HelloTest do
+        use Terminator
+
+        def test_authorization do
+          permissions do
+            calculated(fn performer ->
+              performer.email_confirmed?
+            end)
+          end
+
+          as_authorized do
+            IO.inspect("This code is executed only for authorized performer")
+          end
+        end
+      end
+
+  You can also use DSL form which takes function name as argument
+
+        defmodule HelloTest do
+        use Terminator
+
+        def test_authorization do
+          permissions do
+            calculated(:email_confirmed)
+          end
+
+          as_authorized do
+            IO.inspect("This code is executed only for authorized performer")
+          end
+        end
+
+        def email_confirmed(performer) do
+          performer.email_confirmed?
+        end
+      end
+
+  """
+  defmacro calculated(func_name) when is_atom(func_name) do
+    quote do
+      {:ok, current_performer} = Terminator.Registry.lookup(:current_performer)
+
+      Terminator.Registry.add(
+        :calculated_permissions,
+        unquote(func_name)(current_performer)
+      )
+    end
+  end
+
+  defmacro calculated(callback) do
+    quote do
+      {:ok, current_performer} = Terminator.Registry.lookup(:current_performer)
+
+      result = apply(unquote(callback), [current_performer])
+
+      Terminator.Registry.add(
+        :calculated_permissions,
+        result
+      )
     end
   end
 
@@ -120,20 +187,23 @@ defmodule Terminator do
     {:ok, current_performer} = Terminator.Registry.lookup(:current_performer)
     {:ok, required_abilities} = Terminator.Registry.lookup(:required_abilities)
     {:ok, required_roles} = Terminator.Registry.lookup(:required_roles)
+    {:ok, calculated_permissions} = Terminator.Registry.lookup(:calculated_permissions)
 
     # If no performer is given we can assume that permissions are not granted
     if is_nil(current_performer) do
       {:error, "Performer is not granted to perform this action"}
     else
       # If no permissions were required then we can assume performe is granted
-      if length(required_abilities) + length(required_roles) == 0 do
+      if length(required_abilities) + length(required_roles) + length(calculated_permissions) == 0 do
         :ok
       else
         # 1st layer of authorization (optimize db load)
         first_layer =
-          authorize!([
-            authorize_abilities(current_performer.abilities, required_abilities)
-          ])
+          authorize!(
+            [
+              authorize_abilities(current_performer.abilities, required_abilities)
+            ] ++ calculated_permissions
+          )
 
         if first_layer == :ok do
           first_layer
@@ -168,8 +238,9 @@ defmodule Terminator do
       def load_and_authorize_performer(%{performer: %Terminator.Performer{id: _id} = performer}),
         do: store_performer!(performer)
 
-      def load_and_authorize_performer(%{performer_id: performer_id}),
-        do: load_and_store_performer!(performer_id)
+      def load_and_authorize_performer(%{performer_id: performer_id})
+          when not is_nil(performer_id),
+          do: load_and_store_performer!(performer_id)
 
       def load_and_authorize_performer(performer),
         do: raise(ArgumentError, message: "Invalid performer given #{inspect(performer)}")
@@ -240,6 +311,7 @@ defmodule Terminator do
   @doc false
   def authorize!(conditions) do
     # Authorize empty conditions as true
+
     conditions =
       case length(conditions) do
         0 -> conditions ++ [true]
