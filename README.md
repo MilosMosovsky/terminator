@@ -4,7 +4,16 @@
 [![Build Status](https://img.shields.io/travis/MilosMosovsky/terminator.svg?style=flat-square)](https://travis-ci.org/MilosMosovsky/terminator)
 [![Version](https://img.shields.io/hexpm/v/terminator.svg?style=flat-square)](https://hex.pm/packages/terminator)
 
-Terminator is toolkit for granular ability management for performers. Here is a small example:
+Terminator is toolkit for granular ability management for performers. It allows you to define granular abilities such as:
+
+- `Performer -> Ability`
+- `Performer -> [Ability, Ability, ...]`
+- `Role -> [Ability, Ability, ...]`
+- `Performer -> Role -> [Ability, Ability, Ability]`
+- `Performer -> [Role -> [Ability], Role -> [Ability, ...]]`
+- `Performer -> AnyEntity -> [Ability, ...]`
+
+Here is a small example:
 
 ```elixir
 defmodule Sample.Post
@@ -13,11 +22,13 @@ defmodule Sample.Post
   def delete_post(id) do
     performer = Sample.Repo.get(Terminator.Performer, 1)
     load_and_authorize_performer(performer)
+    post = %Post{id: 1}
 
     permissions do
       has_role(:admin) # or
       has_role(:editor) # or
       has_ability(:delete_posts) # or
+      has_ability(:delete, post) # Entity related abilities
       calculated(fn performer ->
         performer.email_confirmed?
       end)
@@ -43,7 +54,7 @@ defmodule Sample.Post
 ```elixir
 def deps do
   [
-    {:terminator, "~> 0.4"}
+    {:terminator, "~> 0.5.0"}
   ]
 end
 ```
@@ -255,6 +266,37 @@ defmodule Sample.Post do
 
   def is_owner(performer, post) do
     performer.id == post.owner_id
+  end
+end
+```
+
+### Entity related abilities
+
+Terminator allows you to grant abilities on any particular struct. Struct needs to have signature of `%{__struct__: entity_name, id: entity_id}` to infer correct relations. Lets assume that we want to grant `:delete` ability on particular `Post` for our performer:
+
+```elixir
+iex> {:ok, performer} = %Terminator.Performer{} |> Terminator.Repo.insert()
+iex> post = %Post{id: 1}
+iex> ability = %Ability{identifier: "delete"}
+iex> Terminator.Performer.grant(performer, :delete, post)
+iex> Terminator.has_ability?(performer, :delete, post)
+true
+```
+
+```elixir
+defmodule Sample.Post do
+  def delete() do
+    user = Sample.Repo.get(Sample.User, 1)
+    post = %Post{id: 1}
+    load_and_authorize_performer(user)
+
+    permissions do
+      has_ability(:delete, post)
+    end
+
+    as_authorized do
+      :ok
+    end
   end
 end
 ```

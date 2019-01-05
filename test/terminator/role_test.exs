@@ -2,6 +2,11 @@ defmodule Terminator.RoleTest do
   use Terminator.EctoCase
   alias Terminator.Role
 
+  setup do
+    Terminator.reset_session()
+    :ok
+  end
+
   describe "Terminator.Role.changeset/2" do
     test "changeset is invalid" do
       changeset = Role.changeset(%Role{}, %{})

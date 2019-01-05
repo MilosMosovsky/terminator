@@ -9,10 +9,15 @@ defmodule Terminator.Factory do
   end
 
   def ability_factory do
-    %Ability{}
+    %Ability{
+      identifier: sequence(:role, ["view_post", "delete_post", "create_post"])
+    }
   end
 
   def role_factory do
-    %Role{}
+    %Role{
+      identifier: sequence(:role, ["admin", "editor", "user"]),
+      name: sequence(:role_name, &"Generated role-#{&1}")
+    }
   end
 end

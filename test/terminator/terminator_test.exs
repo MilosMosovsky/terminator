@@ -25,6 +25,18 @@ defmodule Post do
     end
   end
 
+  def entity_update(performer) do
+    load_and_authorize_performer(performer)
+
+    permissions do
+      has_ability(:delete_performer, performer)
+    end
+
+    as_authorized do
+      {:ok, "Authorized"}
+    end
+  end
+
   def no_macro(performer) do
     load_and_authorize_performer(performer)
 
@@ -86,20 +98,16 @@ end
 defmodule Terminator.TerminatorTest do
   use Terminator.EctoCase
 
+  setup do
+    Terminator.reset_session()
+    :ok
+  end
+
   describe "Terminator.create_terminator" do
     test "loads macros" do
       functions = Post.__info__(:functions)
 
-      assert [
-               calculated: 2,
-               calculated_macro: 1,
-               confirmed_email: 1,
-               delete: 1,
-               load_and_authorize_performer: 1,
-               no_macro: 1,
-               no_permissions: 1,
-               update: 1
-             ] == functions
+      assert functions[:load_and_authorize_performer] == 1
     end
 
     test "rejects no role" do
@@ -147,6 +155,25 @@ defmodule Terminator.TerminatorTest do
       performer = Terminator.Performer.grant(performer, ability)
 
       assert {:ok, "Authorized"} == Post.update(performer)
+    end
+
+    test "allows ability on struct" do
+      performer = insert(:performer)
+      ability = insert(:ability, identifier: "delete_performer")
+
+      performer = Terminator.Performer.grant(performer, ability, performer)
+
+      assert {:ok, "Authorized"} == Post.entity_update(performer)
+    end
+
+    test "rejects ability on struct" do
+      performer = insert(:performer)
+      ability = insert(:ability, identifier: "update_post")
+
+      performer = Terminator.Performer.grant(performer, ability, performer)
+
+      assert {:error, "Performer is not granted to perform this action"} ==
+               Post.entity_update(performer)
     end
 
     test "rejects inherited ability from role" do
@@ -277,7 +304,7 @@ defmodule Terminator.TerminatorTest do
   end
 
   describe "Terminator.has_role?/2" do
-    test "grants ability passed as an argument" do
+    test "grants role passed as an argument" do
       performer = insert(:performer)
       role = insert(:role, identifier: "admin", name: "Administrator")
 
@@ -285,7 +312,7 @@ defmodule Terminator.TerminatorTest do
 
       assert Terminator.has_role?(performer, :admin)
 
-      refute Terminator.has_role?(performer, :delete_post)
+      refute Terminator.has_role?(performer, :editor)
     end
   end
 

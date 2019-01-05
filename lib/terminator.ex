@@ -64,11 +64,19 @@ defmodule Terminator do
 
   defmacro permissions(do: block) do
     quote do
-      Terminator.Registry.insert(:required_abilities, [])
-      Terminator.Registry.insert(:required_roles, [])
-      Terminator.Registry.insert(:calculated_permissions, [])
+      reset_session()
       unquote(block)
     end
+  end
+
+  @doc """
+  Resets ETS table
+  """
+  def reset_session() do
+    Terminator.Registry.insert(:required_abilities, [])
+    Terminator.Registry.insert(:required_roles, [])
+    Terminator.Registry.insert(:calculated_permissions, [])
+    Terminator.Registry.insert(:extra_rules, [])
   end
 
   @doc """
@@ -240,18 +248,33 @@ defmodule Terminator do
     perform_authorization!(performer, [Atom.to_string(ability_name)], []) == :ok
   end
 
+  def has_ability?(
+        %Terminator.Performer{} = performer,
+        ability_name,
+        %{__struct__: _entity_name, id: _entity_id} = entity
+      ) do
+    active_abilities =
+      case Terminator.Performer.load_performer_entities(performer, entity) do
+        nil -> []
+        entity -> entity.abilities
+      end
+
+    Enum.member?(active_abilities, Atom.to_string(ability_name))
+  end
+
   @doc """
   Perform role check on passed performer and role
   """
   def has_role?(%Terminator.Performer{} = performer, role_name) do
-    perform_authorization!(performer, nil, [Atom.to_string(role_name)]) == :ok
+    perform_authorization!(performer, nil, [Atom.to_string(role_name)], nil) == :ok
   end
 
   @doc false
   def perform_authorization!(
         current_performer \\ nil,
-        required_abilities \\ nil,
-        required_roles \\ []
+        required_abilities \\ [],
+        required_roles \\ [],
+        extra_rules \\ []
       ) do
     current_performer =
       case current_performer do
@@ -263,34 +286,18 @@ defmodule Terminator do
           current_performer
       end
 
-    required_abilities =
-      case required_abilities do
-        nil ->
-          {:ok, required_abilities} = Terminator.Registry.lookup(:required_abilities)
-          required_abilities
-
-        _ ->
-          required_abilities
-      end
-
-    required_roles =
-      case required_roles do
-        [] ->
-          {:ok, required_roles} = Terminator.Registry.lookup(:required_roles)
-          required_roles
-
-        _ ->
-          required_roles
-      end
-
-    {:ok, calculated_permissions} = Terminator.Registry.lookup(:calculated_permissions)
+    required_abilities = ensure_array_from_ets(required_abilities, :required_abilities)
+    required_roles = ensure_array_from_ets(required_roles, :required_roles)
+    extra_rules = ensure_array_from_ets(extra_rules, :extra_rules)
+    calculated_permissions = ensure_array_from_ets([], :calculated_permissions)
 
     # If no performer is given we can assume that permissions are not granted
     if is_nil(current_performer) do
       {:error, "Performer is not granted to perform this action"}
     else
       # If no permissions were required then we can assume performe is granted
-      if length(required_abilities) + length(required_roles) + length(calculated_permissions) == 0 do
+      if length(required_abilities) + length(required_roles) + length(calculated_permissions) +
+           length(extra_rules) == 0 do
         :ok
       else
         # 1st layer of authorization (optimize db load)
@@ -298,7 +305,7 @@ defmodule Terminator do
           authorize!(
             [
               authorize_abilities(current_performer.abilities, required_abilities)
-            ] ++ calculated_permissions
+            ] ++ calculated_permissions ++ extra_rules
           )
 
         if first_layer == :ok do
@@ -320,6 +327,23 @@ defmodule Terminator do
           end
         end
       end
+    end
+  end
+
+  defp ensure_array_from_ets(value, name) do
+    value =
+      case value do
+        [] ->
+          {:ok, value} = Terminator.Registry.lookup(name)
+          value
+
+        value ->
+          value
+      end
+
+    case value do
+      nil -> []
+      _ -> value
     end
   end
 
@@ -443,6 +467,13 @@ defmodule Terminator do
   @spec has_ability(atom()) :: {:ok, atom()}
   def has_ability(ability) do
     Terminator.Registry.add(:required_abilities, Atom.to_string(ability))
+    {:ok, ability}
+  end
+
+  def has_ability(ability, %{__struct__: _entity_name, id: _entity_id} = entity) do
+    {:ok, current_performer} = Terminator.Registry.lookup(:current_performer)
+
+    Terminator.Registry.add(:extra_rules, has_ability?(current_performer, ability, entity))
     {:ok, ability}
   end
 
