@@ -3,11 +3,9 @@ defmodule Terminator.Repo.Migrations.CreatePerformersTable do
 
   def change do
     create table(:terminator_performers) do
-      add(:assoc_id, :integer)
+      add(:abilities, {:array, :string}, default: [])
 
       timestamps()
     end
-
-    create(unique_index(:terminator_performers, [:assoc_id]))
   end
 end

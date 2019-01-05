@@ -1,7 +1,7 @@
 defmodule Terminator.MixProject do
   use Mix.Project
 
-  @version "0.1.5"
+  @version "0.2.0"
   def project do
     [
       app: :terminator,
@@ -39,14 +39,17 @@ defmodule Terminator.MixProject do
       {:postgrex, "~> 0.14.1"},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:optimus, "~> 0.1.0", only: :dev},
+      {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
       {:ex_machina, "~> 2.2", only: :test},
       {:excoveralls, "~> 0.10", only: :test},
+      {:mock, "~> 0.3.0", only: :test},
+      {:inch_ex, only: :docs},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false}
     ]
   end
 
   defp description() do
-    "Elixir library for managing user abilities with support of ecto and compatiblity with absinthe"
+    "Elixir ACL library for managing user abilities and permissions with support of ecto and compatiblity with absinthe"
   end
 
   defp package() do
@@ -65,7 +68,8 @@ defmodule Terminator.MixProject do
       groups_for_modules: [
         Models: [
           Terminator.Performer,
-          Terminator.Role
+          Terminator.Role,
+          Terminator.Ability
         ]
       ]
     ]
@@ -86,7 +90,7 @@ defmodule Terminator.MixProject do
 
   defp aliases do
     [
-      test: ["ecto.create", "ecto.migrate", "test"]
+      test: ["ecto.drop", "ecto.create", "ecto.migrate", "test"]
     ]
   end
 end

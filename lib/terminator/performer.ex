@@ -1,4 +1,7 @@
 defmodule Terminator.Performer do
+  @moduledoc """
+  Performer is a main actor for determining abilities
+  """
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -9,18 +12,16 @@ defmodule Terminator.Performer do
   @type t :: %Performer{}
 
   schema "terminator_performers" do
-    field(:assoc_id, :integer)
+    field(:abilities, {:array, :string}, default: [])
 
     many_to_many(:roles, Terminator.Role, join_through: Terminator.PerformersRoles)
-    many_to_many(:abilities, Terminator.Ability, join_through: Terminator.PerformersAbilities)
 
     timestamps()
   end
 
   def changeset(%Performer{} = struct, params \\ %{}) do
     struct
-    |> cast(params, [:assoc_id])
-    |> unique_constraint(:assoc_id, message: "Performer is already assigned to foreign entity")
+    |> cast(params, [])
   end
 
   @doc """
@@ -57,14 +58,12 @@ defmodule Terminator.Performer do
   end
 
   def grant(%Performer{id: id} = _performer, %Terminator.Ability{id: _id} = ability) do
-    # Preload performer abilityies
-    performer = Performer |> Terminator.Repo.get!(id) |> Terminator.Repo.preload([:abilities])
-
-    abilities = merge_uniq_grants(performer.abilities ++ [ability])
+    performer = Performer |> Terminator.Repo.get!(id)
+    abilities = Enum.uniq(performer.abilities ++ [ability.identifier])
 
     changeset =
       changeset(performer)
-      |> put_assoc(:abilities, abilities)
+      |> put_change(:abilities, abilities)
 
     changeset |> Terminator.Repo.update!()
   end
@@ -96,9 +95,18 @@ defmodule Terminator.Performer do
   end
 
   def revoke(%Performer{id: id} = _performer, %Terminator.Ability{id: _id} = ability) do
-    from(pa in Terminator.PerformersAbilities)
-    |> where([pa], pa.performer_id == ^id and pa.ability_id == ^ability.id)
-    |> Terminator.Repo.delete_all()
+    performer = Performer |> Terminator.Repo.get!(id)
+
+    abilities =
+      Enum.filter(performer.abilities, fn grant ->
+        grant != ability.identifier
+      end)
+
+    changeset =
+      changeset(performer)
+      |> put_change(:abilities, abilities)
+
+    changeset |> Terminator.Repo.update!()
   end
 
   def revoke(_, _), do: raise(ArgumentError, message: "Bad arguments for revoking grant")

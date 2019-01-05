@@ -1,4 +1,7 @@
 defmodule Terminator.Ability do
+  @moduledoc """
+  Ability is main representation of a single permission
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

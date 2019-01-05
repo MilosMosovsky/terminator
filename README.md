@@ -4,16 +4,43 @@
 [![Build Status](https://img.shields.io/travis/MilosMosovsky/terminator.svg?style=flat-square)](https://travis-ci.org/MilosMosovsky/terminator)
 [![Version](https://img.shields.io/hexpm/v/terminator.svg?style=flat-square)](https://hex.pm/packages/terminator)
 
-Terminator is toolkit for granular ability management for performers
+Terminator is toolkit for granular ability management for performers. Here is a small example:
 
-**WIP: NOT INTENDED FOR PRODUCTION USE**
+```elixir
+defmodule Sample.Post
+  use Terminator
+
+  def delete_post(id) do
+    performer = Sample.Repo.get(Terminator.Performer, 1)
+    load_and_authorize_performer(performer)
+
+    permissions do
+      has_role(:admin) # or
+      has_role(:editor) # or
+      has_ability(:delete_posts) # or
+    end
+
+    as_authorized do
+      Sample.Repo.get(Sample.Post, id) |> Sample.repo.delete()
+    end
+
+    # Notice that you can use both macros or functions
+
+    case is_authorized? do
+      :ok -> Sample.Repo.get(Sample.Post, id) |> Sample.repo.delete()
+      {:error, message} -> "Raise error"
+      _ -> "Raise error"
+    end
+  end
+
+```
 
 ## Installation
 
 ```elixir
 def deps do
   [
-    {:terminator, "~> 0.1.5"}
+    {:terminator, "~> 0.2"}
   ]
 end
 ```
@@ -26,6 +53,88 @@ config :terminator, Terminator.Repo,
   database: "terminator_dev",
   hostname: "localhost"
 ```
+
+```elixir
+iex> mix terminator.setup
+```
+
+### Usage with ecto
+
+Terminator is originally designed to be used with Ecto. Usually you will want to have your own table for `Accounts`/`Users` living in your application. To do so you can link performer with `belongs_to` association within your schema.
+
+```elixir
+# In your migrations add performer_id field
+defmodule Sample.Migrations.CreateUsersTable do
+  use Ecto.Migration
+
+  def change do
+    create table(:users) do
+      add :username, :string
+      add :performer_id, references(Terminator.Performer.table())
+
+      timestamps()
+    end
+
+    create unique_index(:users, [:username])
+  end
+end
+
+```
+
+This will allow you link any internal entity with 1-1 association to performers. Please note that you need to create performer on each user creation (e.g with `Terminator.Performer.changeset/2`) and call `put_assoc` inside your changeset
+
+```elixir
+# In schema defintion
+defmodule Sample.User do
+  use Ecto.Schema
+
+  schema "users" do
+    field :username, :String
+
+    belongs_to :performer, Terminator.Performer
+
+    timestamps()
+  end
+end
+```
+
+```elixir
+# In your model
+defmodule Sample.Post
+  use Terminator
+
+  def delete_post(id) do
+    user = Sample.Repo.get(Sample.User, 1)
+    load_and_authorize_performer(user)
+    # Function allows multiple signatues of performer it can
+    # be either:
+    #  * %Terminator.Performer{}
+    #  * %AnyStruct{performer: %Terminator.Performer{}}
+    #  * %AnyStruct{performer_id: id} (this will perform database preload)
+
+
+    permissions do
+      has_role(:admin) # or
+      has_role(:editor) # or
+      has_ability(:delete_posts) # or
+    end
+
+    as_authorized do
+      Sample.Repo.get(Sample.Post, id) |> Sample.repo.delete()
+    end
+
+    # Notice that you can use both macros or functions
+
+    case is_authorized? do
+      :ok -> Sample.Repo.get(Sample.Post, id) |> Sample.repo.delete()
+      {:error, message} -> "Raise error"
+      _ -> "Raise error"
+    end
+  end
+
+```
+
+Terminator tries to infer the performer, so it is easy to pass any struct (could be for example `User` in your application) which has set up `belongs_to` association for performer. If the performer was already preloaded from database Terminator will take it as loaded performer. If you didn't do preload and just loaded `User` -> `Repo.get(User, 1)` Terminator will fetch the performer on each authorization try.
 
 ### Granting abilities
 

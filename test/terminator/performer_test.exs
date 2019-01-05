@@ -23,10 +23,10 @@ defmodule Terminator.PerformerTest do
 
       Performer.grant(performer, ability)
 
-      performer = Repo.get(Performer, performer.id) |> Repo.preload([:abilities])
+      performer = Repo.get(Performer, performer.id)
 
       assert 1 == length(performer.abilities)
-      assert ability == Enum.at(performer.abilities, 0)
+      assert "delete_accounts" == Enum.at(performer.abilities, 0)
     end
 
     test "grant only unique abilities to performer" do
@@ -36,10 +36,10 @@ defmodule Terminator.PerformerTest do
       Performer.grant(performer, ability)
       Performer.grant(performer, ability)
 
-      performer = Repo.get(Performer, performer.id) |> Repo.preload([:abilities])
+      performer = Repo.get(Performer, performer.id)
 
       assert 1 == length(performer.abilities)
-      assert ability == Enum.at(performer.abilities, 0)
+      assert "delete_accounts" == Enum.at(performer.abilities, 0)
     end
 
     test "grant different abilities to performer" do
@@ -50,10 +50,9 @@ defmodule Terminator.PerformerTest do
       Performer.grant(performer, ability_delete)
       Performer.grant(performer, ability_ban)
 
-      performer = Repo.get(Performer, performer.id) |> Repo.preload([:abilities])
-
+      performer = Repo.get(Performer, performer.id)
       assert 2 == length(performer.abilities)
-      assert [ability_delete] ++ [ability_ban] == performer.abilities
+      assert [ability_delete.identifier] ++ [ability_ban.identifier] == performer.abilities
     end
 
     test "grant role to performer" do
@@ -110,13 +109,13 @@ defmodule Terminator.PerformerTest do
 
       Performer.grant(performer, ability)
       Performer.grant(performer, ability_ban)
-      performer = Repo.get(Performer, performer.id) |> Repo.preload([:abilities])
+      performer = Repo.get(Performer, performer.id)
       assert 2 == length(performer.abilities)
 
       Performer.revoke(performer, ability)
-      performer = Repo.get(Performer, performer.id) |> Repo.preload([:abilities])
+      performer = Repo.get(Performer, performer.id)
       assert 1 == length(performer.abilities)
-      assert ability_ban == Enum.at(performer.abilities, 0)
+      assert "ban_accounts" == Enum.at(performer.abilities, 0)
     end
 
     test "revokes correct role from performer" do

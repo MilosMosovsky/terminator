@@ -31,7 +31,9 @@ defmodule Terminator.Registry do
         {:ok, current} -> current
       end
 
-    insert(name, current ++ [value])
+    uniq = Enum.uniq(current ++ [value])
+
+    insert(name, uniq)
   end
 
   def lookup(name) do

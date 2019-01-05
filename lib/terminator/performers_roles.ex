@@ -1,4 +1,6 @@
 defmodule Terminator.PerformersRoles do
+  @moduledoc false
+
   use Ecto.Schema
 
   schema "terminator_performers_roles" do

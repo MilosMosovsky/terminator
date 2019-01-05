@@ -9,16 +9,16 @@ defmodule Terminator.Application do
       worker(Terminator.Registry, [])
     ]
 
-    children = children ++ ensure_local_test_repo()
+    children = children ++ load_repos()
 
     opts = [strategy: :one_for_one, name: Terminator.Supervisor]
     Supervisor.start_link(children, opts)
   end
 
-  defp ensure_local_test_repo do
-    case Mix.env() in [:test, :dev] do
-      true -> Application.get_env(:terminator, :ecto_repos)
-      _ -> []
+  defp load_repos do
+    case Application.get_env(:terminator, :ecto_repos) do
+      nil -> [Terminator.Repo]
+      repos -> repos
     end
   end
 end

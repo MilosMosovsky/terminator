@@ -8,7 +8,6 @@ defmodule Terminator.Role do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Terminator.Repo
   alias __MODULE__
 
   @typedoc "A role struct"
