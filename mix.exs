@@ -1,7 +1,7 @@
 defmodule Terminator.MixProject do
   use Mix.Project
 
-  @version "0.5.0"
+  @version "0.5.1"
   def project do
     [
       app: :terminator,
@@ -49,7 +49,7 @@ defmodule Terminator.MixProject do
   end
 
   defp description() do
-    "Elixir ACL library for managing user abilities and permissions with support of ecto and compatiblity with absinthe"
+    "Elixir ACL library for managing user abilities and permissions with support of ecto and compatibility with absinthe"
   end
 
   defp package() do

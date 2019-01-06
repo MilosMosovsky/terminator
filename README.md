@@ -54,7 +54,7 @@ defmodule Sample.Post
 ```elixir
 def deps do
   [
-    {:terminator, "~> 0.5.0"}
+    {:terminator, "~> 0.5.1"}
   ]
 end
 ```
