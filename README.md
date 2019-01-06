@@ -13,6 +13,8 @@ Terminator is toolkit for granular ability management for performers. It allows 
 - `Performer -> [Role -> [Ability], Role -> [Ability, ...]]`
 - `Performer -> AnyEntity -> [Ability, ...]`
 
+It tries to mimic [https://en.wikipedia.org/wiki/Attribute-based_access_control](https://en.wikipedia.org/wiki/Attribute-based_access_control) and allow to define any policy which is needed.
+
 Here is a small example:
 
 ```elixir
@@ -49,12 +51,24 @@ defmodule Sample.Post
 
 ```
 
+## Features
+
+- [x] `Performer` -> `[Ability]` permission schema
+- [x] `Role` -> `[Ability]` permission schema
+- [x] `Performer` -> `[Role]` -> `[Ability]` permission schema
+- [x] `Performer` -> `Object` -> `[Ability]` permission schema
+- [x] Computed permission in runtime
+- [x] Easily readable DSL
+- [ ] [ueberauth](https://github.com/ueberauth/ueberauth) integration
+- [ ] [absinthe](https://github.com/absinthe-graphql/absinthe) middleware
+- [ ] Session plug to get current_user
+
 ## Installation
 
 ```elixir
 def deps do
   [
-    {:terminator, "~> 0.5.1"}
+    {:terminator, "~> 0.5.2"}
   ]
 end
 ```
