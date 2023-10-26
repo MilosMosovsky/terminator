@@ -8,8 +8,9 @@ use Mix.Config
 config :terminator, Terminator.Repo,
   username: "postgres",
   password: "postgres",
-  database: "api_test",
+  database: "terminator",
   hostname: "localhost",
+  port: 5432,
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :logger,
