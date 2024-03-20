@@ -234,6 +234,7 @@ defmodule Terminator do
             {:error, message: _message} -> "Performer is not authorized"
         end
       end
+      end
   """
   @spec is_authorized?() :: :ok | {:error, String.t()}
   def is_authorized? do

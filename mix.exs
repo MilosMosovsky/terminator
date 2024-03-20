@@ -1,12 +1,12 @@
 defmodule Terminator.MixProject do
   use Mix.Project
 
-  @version "0.5.2"
+  @version "0.5.3"
   def project do
     [
       app: :terminator,
       version: @version,
-      elixir: "~> 1.7",
+      elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -35,15 +35,15 @@ defmodule Terminator.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.0"},
-      {:ecto_sql, "~> 3.0"},
-      {:postgrex, "~> 0.14.1"},
+      {:ecto_sql, "~> 3.6"},
+      {:postgrex, "~> 0.16"},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:optimus, "~> 0.1.0", only: :dev},
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
       {:ex_machina, "~> 2.2", only: :test},
       {:excoveralls, "~> 0.10", only: :test},
       {:mock, "~> 0.3.0", only: :test},
-      {:inch_ex, only: :docs},
+      {:inch_ex, ">= 0.0.0", only: :docs},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false}
     ]
   end
@@ -90,7 +90,10 @@ defmodule Terminator.MixProject do
 
   defp aliases do
     [
-      test: ["ecto.create", "ecto.migrate", "test"]
+      c: "compile",
+      "ecto.setup": ["ecto.create", "ecto.migrate"],
+      test: ["ecto.create", "ecto.migrate", "test"],
+      install: ["Terminator.install", "ecto.setup"]
     ]
   end
 end
